@@ -140,7 +140,7 @@
 
                 <div id="rastreamento-status" class="p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded-lg text-sm mb-4">
                     <p class="font-bold">STATUS DO RASTREAMENTO (VIA PROXY):</p>
-                    <p>Tentando conectar ao Servidor Proxy para buscar dados. **Se o erro 404 persistir, a URL da API ou o TOKEN no Render está incorreto.**</p>
+                    <p>Tentando conectar ao Servidor Proxy para buscar dados...</p>
                 </div>
                 
                 <div id="rastreamento-content" class="space-y-4">
@@ -314,39 +314,33 @@
             try {
                 const response = await fetch(url);
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Checa se o proxy retornou um erro de autenticação interno (erro da SPTrans)
-                    if (data.Error) {
-                         // Erro retornado pelo proxy, indicando falha na autenticação da SPTrans
-                        rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
-                        rastreamentoStatus.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
-                        // Exibe a mensagem de erro do proxy (que deve incluir o status 404 da SPTrans)
-                        rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Erro de Autenticação na SPTrans (Via Proxy):</p><p class="text-center text-red-500">${data.Error}</p><p class="text-center text-red-500">O **TOKEN** ou a **URL da API** podem estar incorretos. Verifique a variável SPTRANS_API_TOKEN e SPTRANS_API_URL no Render.</p>`;
-                        return;
-                    }
-
-                    // Sucesso
-                    rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
-                    rastreamentoStatus.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
-                    rastreamentoStatus.innerHTML = `<p class="font-bold">SUCESSO:</p><p>Dados recebidos do proxy. ${data.vs ? data.vs.length : 0} veículos em tempo real.</p>`;
-
-                    displayRastreamento(data);
-                } else {
-                    // O proxy retornou um erro HTTP (e.g., 500, 403, 404 do próprio proxy)
-                    const errorText = await response.text();
-                    rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
-                    rastreamentoStatus.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
-                    rastreamentoStatus.innerHTML = `<p class="font-bold">Erro Crítico do Proxy:</p><p>O servidor proxy retornou o status: ${response.status}. Verifique se o serviço Render está ativo ou se o erro de autenticação persiste (código 403).</p>`;
-                    rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Falha na Comunicação com o Proxy.</p><p class="text-center text-red-500 text-xs">Detalhes (do proxy): ${errorText.substring(0, 100)}...</p>`;
+                // CORREÇÃO: Trata a falha do proxy (erros 4xx, 5xx) e exibe a mensagem detalhada.
+                if (!response.ok) { 
+                     const errorData = await response.json();
+                     rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
+                     rastreamentoStatus.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+                     
+                     // Exibe a mensagem de erro detalhada do proxy (que inclui o 404 da SPTrans)
+                     rastreamentoStatus.innerHTML = `<p class="font-bold">Erro do Servidor Proxy (Status HTTP: ${response.status}):</p><p class="text-sm">${errorData.Error}</p>`;
+                     rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Falha na Comunicação com a SPTrans (Via Proxy).</p>`;
+                     return;
                 }
+                
+                // Sucesso (Status 200)
+                const data = await response.json();
+                
+                rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
+                rastreamentoStatus.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
+                rastreamentoStatus.innerHTML = `<p class="font-bold">SUCESSO:</p><p>Dados recebidos do proxy. ${data.vs ? data.vs.length : 0} veículos em tempo real.</p>`;
+
+                displayRastreamento(data);
+                
             } catch (error) {
                 // Erro de rede (Proxy inativo/offline)
                 rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
                 rastreamentoStatus.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
                 rastreamentoStatus.innerHTML = `<p class="font-bold">Erro de Conexão Crítico:</p><p>Não foi possível conectar-se ao proxy. Verifique se o serviço Render está rodando e se a URL do proxy está correta: **${PROXY_BASE_URL}**</p>`;
-                rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Proxy Inativo/Offline.</p>`;
+                rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Proxy Inativo/Offline. Verifique o status no Render.</p>`;
                 console.error("Erro ao conectar-se ao servidor proxy:", error);
             }
         }
@@ -359,7 +353,7 @@
                 return;
             }
 
-            const lineKey = data.cl.slice(0, 4) + '-' + data.cl.slice(4); 
+            const lineKey = data.cl; // Linha já está formatada pelo proxy
             const lineInfo = busData[lineKey];
             const nomeLinha = lineInfo ? lineInfo.nome : 'Linha Desconhecida';
             
@@ -467,7 +461,7 @@
             linhaRastreamentoSelect.innerHTML = 
                 '<option value="">Selecione uma linha...</option>' + 
                 lines.map(key => 
-                `<option value="${key.replace('-', '')}">${key} - ${busData[key].nome}</option>` 
+                `<option value="${key}">${key} - ${busData[key].nome}</option>` 
             ).join('');
         }
 
