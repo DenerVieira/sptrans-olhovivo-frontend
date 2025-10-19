@@ -53,16 +53,6 @@
         .nav-buttons {
             display: flex;
         }
-        /* Estilo para o spinner de loading */
-        .spinner {
-            border-top-color: transparent;
-            border-left-color: currentColor;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body class="p-4 sm:p-6 lg:p-8 min-h-screen">
@@ -148,13 +138,13 @@
                 
                 <h2 class="text-xl font-bold text-gray-800 mb-3 border-b pb-2">Ônibus em Tempo Real</h2>
 
-                <div id="rastreamento-status" class="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm mb-4">
-                    <p class="font-bold">AVISO: O PROXY É NECESSÁRIO</p>
-                    <p>A API da SPTrans bloqueia o acesso direto. Para o rastreamento funcionar, seu Web Service Proxy precisa estar rodando em **https://sptrans-olhovivo-proxy.onrender.com**.</p>
+                <div id="rastreamento-status" class="p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded-lg text-sm mb-4">
+                    <p class="font-bold">STATUS DO RASTREAMENTO:</p>
+                    <p>Tentando conectar ao Servidor Proxy para buscar dados. O token de acesso está seguro no servidor proxy.</p>
                 </div>
                 
                 <div id="rastreamento-content" class="space-y-4">
-                    <p id="rastreamento-empty" class="text-center text-gray-500 py-10">Selecione uma linha para ver as posições dos ônibus.</p>
+                    <p id="rastreamento-empty" class="text-center text-gray-500 py-10">Selecione uma linha para ver as posições dos ônibus (Se o proxy estiver ativo).</p>
                 </div>
             </div>
         </div>
@@ -166,11 +156,12 @@
     </footer>
     
     <script>
-        // *** CORREÇÃO CRÍTICA: URL BASE DO SEU PROXY NO RENDER ***
-        const PROXY_BASE_URL = 'https://sptrans-olhovivo-proxy.onrender.com';
-        let isAuthenticated = false; // Flag para rastrear o estado da autenticação
-
-        // --- DADOS DE HORÁRIOS (MANTIDOS) ---
+        // CORREÇÃO CRÍTICA: Removendo o API_TOKEN e API_URL do frontend por segurança.
+        // O frontend agora só conhece a URL do seu PRÓPRIO servidor proxy.
+        // **ATENÇÃO:** Mude esta URL se o seu serviço Render tiver outro endereço.
+        const PROXY_BASE_URL = 'https://sptrans-olhovivo-proxy.onrender.com/api'; 
+        
+        // --- DADOS DE HORÁRIOS (6L03-10 ATUALIZADOS) ---
         const busData = {
             "6L01-10": {
                 "nome": "MARSILAC",
@@ -303,124 +294,81 @@
         const rastreamentoStatus = document.getElementById('rastreamento-status');
 
 
-        // --- FUNÇÕES DA API OLHO VIVO (SPTrans) - USANDO PROXY CORRIGIDO ---
+        // --- FUNÇÕES DA API OLHO VIVO (SPTrans) ---
 
-        async function sptransLogin() {
-            if (isAuthenticated) return true; 
-
-            const url = `${PROXY_BASE_URL}/login`;
-            
-            rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS DO PROXY:</p><p><span class="spinner inline-block w-4 h-4 border-2 rounded-full mr-2"></span>Tentando conectar e autenticar no servidor proxy...</p>`;
-            rastreamentoStatus.className = 'p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded-lg text-sm mb-4';
-
-            try {
-                // Requisição POST para o endpoint de login do proxy
-                const response = await fetch(url, { method: 'POST', credentials: 'include' }); 
-
-                if (response.ok) {
-                    isAuthenticated = true;
-                    rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS: Autenticação bem-sucedida!</p><p>Proxy OK. Selecione uma linha para rastrear.</p>`;
-                    rastreamentoStatus.className = 'p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-sm mb-4';
-                    return true;
-                } else {
-                    const errorData = await response.json();
-                    console.error("SPTrans Proxy: Falha na Autenticação (HTTP Status):", response.status, errorData);
-                    
-                    let message = `Status: ${response.status}. Mensagem: ${errorData.message || 'Verifique o log do seu Web Service no Render.'}`;
-
-                    // Tratamento específico para o erro 404 da API da SPTrans
-                    if (response.status === 500 && errorData.message && errorData.message.includes('404')) {
-                         message = `<span class="font-bold text-red-800">ERRO CRÍTICO NA AUTENTICAÇÃO SPTRANS (404)!</span><br>O proxy falhou ao se autenticar com a SPTrans.<br>Provável causa: **TOKEN** ou **URL da API** no seu Web Service (`+"`proxy.js`"+`) estão incorretos.`;
-                    } else if (response.status === 401) {
-                         message = `<span class="font-bold text-red-800">SESSÃO EXPIRADA/NÃO AUTORIZADA (401)!</span><br>O proxy perdeu a sessão. Tente selecionar a linha novamente.`;
-                    }
-                    
-                    rastreamentoStatus.innerHTML = `<p class="font-bold">ERRO CRÍTICO NA AUTENTICAÇÃO:</p><p>${message}</p>`;
-                    rastreamentoStatus.className = 'p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm mb-4';
-                    return false;
-                }
-            } catch (error) {
-                console.error("SPTrans Proxy: Falha Crítica na Requisição (Proxy Offline/CORS):", error);
-                rastreamentoStatus.innerHTML = `<p class="font-bold">ERRO DE CONEXÃO CRÍTICO!</p><p>Não foi possível conectar ao proxy em ${PROXY_BASE_URL}/login.</p><p>Verifique se o seu Web Service está **Live** no Render.</p>`;
-                rastreamentoStatus.className = 'p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm mb-4';
-                return false;
-            }
-        }
+        // A autenticação e a sessão agora são responsabilidade TOTAL do servidor proxy (proxy.js).
+        // As funções sptransLogin e a lógica CORS/Token foram removidas do frontend.
         
         async function getRastreamento(lineId) {
             rastreamentoContent.innerHTML = '';
             rastreamentoEmpty.classList.add('hidden');
             
-            // Tenta logar/revalidar o login se não estiver autenticado
-            if (!isAuthenticated) {
-                const authenticated = await sptransLogin();
-                if (!authenticated) {
-                    rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Falha na Autenticação. Corrija o problema acima.</p>`;
-                    return;
-                }
-            }
-
-            rastreamentoContent.innerHTML = `<p class="text-center text-gray-500 py-10"><span class="spinner inline-block w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full mr-2"></span>Buscando posições dos ônibus...</p>`;
-
-            const url = `${PROXY_BASE_URL}/posicao/${lineId}`;
+            // CORREÇÃO CRÍTICA: Chama o endpoint do PROXY. O proxy deve lidar com o login.
+            const url = `${PROXY_BASE_URL}/posicao?codigoLinha=${lineId}`; 
             
+            // Atualiza o status
+            rastreamentoStatus.classList.remove('bg-red-100', 'border-red-400', 'text-red-700', 'bg-orange-100', 'border-orange-400', 'text-orange-700', 'bg-green-100', 'border-green-400', 'text-green-700');
+            rastreamentoStatus.classList.add('bg-blue-100', 'border-blue-400', 'text-blue-700');
+            rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS DO RASTREAMENTO:</p><p>Conectando ao proxy para buscar a posição da linha ${lineId}...</p>`;
+
+
             try {
-                // Requisição GET para o endpoint de posição do proxy
-                const response = await fetch(url, { credentials: 'include' });
+                const response = await fetch(url);
                 
                 if (response.ok) {
                     const data = await response.json();
-                    displayRastreamento(data);
-                } else if (response.status === 401) {
-                    // 401: Não autorizado (o cookie expirou) -> Força um novo login
-                    isAuthenticated = false; 
-                    rastreamentoContent.innerHTML = `<p class="text-center text-orange-500 mt-4 font-bold">Sessão expirada. Tentando novo login...</p>`;
-                    await sptransLogin();
-                    // Tenta a requisição de novo
-                    await getRastreamento(lineId); 
+                    
+                    // Checa se o proxy retornou um erro de autenticação interno (erro da SPTrans)
+                    if (data.Error) {
+                         // Erro retornado pelo proxy, indicando falha na autenticação da SPTrans
+                        rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
+                        rastreamentoStatus.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+                        // Exibe a mensagem de erro do proxy (que deve incluir o status 404 da SPTrans)
+                        rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Erro de Autenticação na SPTrans (Via Proxy):</p><p class="text-center text-red-500">${data.Error}</p><p class="text-center text-red-500">Verifique as variáveis TOKEN/URL no log do seu servidor Render.</p>`;
+                        return;
+                    }
 
+                    // Sucesso
+                    rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
+                    rastreamentoStatus.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
+                    rastreamentoStatus.innerHTML = `<p class="font-bold">SUCESSO:</p><p>Dados recebidos do proxy. Posições exibidas abaixo.</p>`;
+
+                    displayRastreamento(data);
                 } else {
-                    const errorData = await response.json();
-                    rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4">Erro ao buscar dados: ${response.status}. Detalhes: ${errorData.message || 'Verifique o log do proxy.'}</p>`;
+                    // O proxy retornou um erro HTTP (e.g., 500, 404 do próprio proxy)
+                    rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
+                    rastreamentoStatus.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+                    rastreamentoStatus.innerHTML = `<p class="font-bold">Erro Crítico do Proxy:</p><p>O servidor proxy retornou o status: ${response.status}. Verifique se o serviço Render está ativo (502 Bad Gateway) ou se há erro de lógica (500 Internal Server Error).</p>`;
+                    rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Falha na Comunicação com o Proxy.</p>`;
                 }
             } catch (error) {
-                rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Não foi possível buscar as posições. (Erro de rede ou proxy)</p>`;
-                console.error("Erro ao buscar a posição:", error);
+                // Erro de rede (Proxy inativo/offline)
+                rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
+                rastreamentoStatus.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+                rastreamentoStatus.innerHTML = `<p class="font-bold">Erro de Conexão Crítico:</p><p>Não foi possível conectar-se ao proxy. Verifique se o serviço Render está rodando e se a URL do proxy está correta.</p>`;
+                rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Proxy Inativo/Offline.</p>`;
+                console.error("Erro ao conectar-se ao servidor proxy:", error);
             }
         }
         
         function displayRastreamento(data) {
             rastreamentoContent.innerHTML = '';
 
-            // Verifica se a API da SPTrans retornou dados válidos
             if (!data.vs || data.vs.length === 0) {
-                // Se a requisição foi bem-sucedida, mas não há ônibus em circulação
-                 rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS: Sucesso na conexão.</p><p>Nenhum ônibus em circulação no momento (Atualizado em: ${data.hr || 'N/A'}).</p>`;
-                 rastreamentoStatus.className = 'p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-sm mb-4';
-
-                rastreamentoContent.innerHTML = `<p class="text-center text-gray-500 py-10">Nenhum ônibus encontrado em circulação para esta linha no momento (Atualizado em: ${data.hr || 'N/A'}).</p>`;
+                rastreamentoContent.innerHTML = `<p class="text-center text-gray-500 py-10">Nenhum ônibus encontrado em circulação para esta linha no momento.</p>`;
                 return;
             }
 
-            // O código da linha da API da SPTrans (data.cl) é numérico, ex: 60310.
-            // Para encontrar no busData, precisamos formatá-lo, ex: 6L03-10.
-            const lineCodeNumeric = String(data.cl); 
-            // O formato deve ser 6L0X10 (5 dígitos), mas a API retorna 5 dígitos ex: 60310.
-            // Aqui estamos apenas para mostrar que a chave é a correta no busData (6L03-10)
-            const lineKey = Object.keys(busData).find(key => key.replace('L', '').replace('-', '') === lineCodeNumeric); 
-            
+            const lineKey = data.cl.slice(0, 4) + '-' + data.cl.slice(4); 
             const lineInfo = busData[lineKey];
             const nomeLinha = lineInfo ? lineInfo.nome : 'Linha Desconhecida';
             
-            rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS: Sucesso na conexão.</p><p>Posições em tempo real encontradas.</p>`;
-            rastreamentoStatus.className = 'p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-sm mb-4';
-
-            rastreamentoContent.innerHTML += `<p class="text-sm text-gray-600 mb-4">Linha **${lineKey || lineCodeNumeric} - ${nomeLinha}**: ${data.vs.length} veículos em circulação (Atualizado em: ${data.hr})</p>`;
+            rastreamentoContent.innerHTML += `<p class="text-sm text-gray-600 mb-4">Linha **${lineKey} - ${nomeLinha}**: ${data.vs.length} veículos em circulação (Atualizado em: ${data.hr})</p>`;
 
             data.vs.forEach(v => {
                 const sentido = v.ta === 1 ? 'Terminal Principal' : 'Terminal Secundário';
-                const lat = v.py ? v.py.toFixed(4) : 'N/A';
-                const lon = v.px ? v.px.toFixed(4) : 'N/A';
+                const lat = v.py.toFixed(4);
+                const lon = v.px.toFixed(4);
                 
                 rastreamentoContent.innerHTML += `
                     <div class="p-3 border rounded-lg bg-gray-50 flex justify-between items-center shadow-sm">
@@ -448,7 +396,7 @@
              }
         }
         
-        // --- Funções de Utilitários (MANTIDAS) ---
+        // --- Funções de Utilitários ---
         
         function getDiaSemanaAtual() {
             const today = new Date();
@@ -505,7 +453,7 @@
             return null;
         }
 
-        // --- Funções da UI Principal (MANTIDAS) ---
+        // --- Funções da UI Principal ---
 
         function populateLinhas() {
             const lines = Object.keys(busData);
@@ -519,8 +467,7 @@
             linhaRastreamentoSelect.innerHTML = 
                 '<option value="">Selecione uma linha...</option>' + 
                 lines.map(key => 
-                // Linha para API: 6L03-10 -> 60310
-                `<option value="${key.replace('L', '').replace('-', '')}">${key} - ${busData[key].nome}</option>` 
+                `<option value="${key.replace('-', '')}">${key} - ${busData[key].nome}</option>` 
             ).join('');
         }
 
@@ -610,8 +557,6 @@
             } else if (tabName === 'rastreamento') {
                 contentRastreamento.classList.remove('hidden');
                 tabRastreamento.classList.add('active');
-                // Força o login sempre que a aba é aberta para revalidar o status
-                isAuthenticated = false; 
                 searchAndDisplayRastreamento();
             }
         }
@@ -628,16 +573,6 @@
             setInterval(() => {
                 if (!contentHorarios.classList.contains('hidden')) {
                     displayHorarios();
-                }
-                // Atualiza o rastreamento a cada 30 segundos, se a aba estiver ativa
-                if (!contentRastreamento.classList.contains('hidden')) {
-                     const selectedLineId = linhaRastreamentoSelect.value;
-                     if (selectedLineId && isAuthenticated) {
-                         getRastreamento(selectedLineId);
-                     } else if (selectedLineId) {
-                         // Se não estiver autenticado, tenta logar novamente
-                         sptransLogin();
-                     }
                 }
             }, 30000); 
 
