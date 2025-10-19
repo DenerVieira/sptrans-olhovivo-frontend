@@ -297,7 +297,6 @@
         // --- FUNÇÕES DA API OLHO VIVO (SPTrans) ---
 
         // A autenticação e a sessão agora são responsabilidade TOTAL do servidor proxy (proxy.js).
-        // As funções sptransLogin e a lógica CORS/Token foram removidas do frontend.
         
         async function getRastreamento(lineId) {
             rastreamentoContent.innerHTML = '';
@@ -324,7 +323,7 @@
                         rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
                         rastreamentoStatus.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
                         // Exibe a mensagem de erro do proxy (que deve incluir o status 404 da SPTrans)
-                        rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Erro de Autenticação na SPTrans (Via Proxy):</p><p class="text-center text-red-500">${data.Error}</p><p class="text-center text-red-500">Verifique as variáveis TOKEN/URL no log do seu servidor Render.</p>`;
+                        rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Erro de Autenticação na SPTrans (Via Proxy):</p><p class="text-center text-red-500">${data.Error}</p><p class="text-center text-red-500">O NOVO TOKEN PODE ESTAR INVÁLIDO OU NÃO FOI APLICADO CORRETAMENTE NO RENDER.</p>`;
                         return;
                     }
 
