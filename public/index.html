@@ -156,8 +156,7 @@
     </footer>
     
     <script>
-        // *** NOVO: URL BASE DO SEU PROXY NO RENDER ***
-        // CORRIGIDO PARA USAR A RAIZ DO SEU WEB SERVICE
+        // *** CORREÇÃO CRÍTICA: URL BASE DO SEU PROXY NO RENDER ***
         const PROXY_BASE_URL = 'https://sptrans-olhovivo-proxy.onrender.com';
         let isAuthenticated = false; // Flag para rastrear o estado da autenticação
 
@@ -302,7 +301,7 @@
             const url = `${PROXY_BASE_URL}/login`;
             
             rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS DO RASTREAMENTO:</p><p>Tentando conectar e autenticar no servidor proxy...</p>`;
-            rastreamentoStatus.classList.remove('bg-red-100', 'border-red-400', 'text-red-700', 'bg-orange-100', 'border-orange-400', 'text-orange-700');
+            rastreamentoStatus.classList.remove('bg-red-100', 'border-red-400', 'text-red-700', 'bg-orange-100', 'border-orange-400', 'text-orange-700', 'bg-green-100', 'border-green-400', 'text-green-700');
             rastreamentoStatus.classList.add('bg-blue-100', 'border-blue-400', 'text-blue-700');
 
 
@@ -313,8 +312,8 @@
 
                 if (response.ok) {
                     isAuthenticated = true;
-                    rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS: Autenticação bem-sucedida!</p><p>Agora buscando as posições dos ônibus.</p>`;
-                    rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
+                    rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS: Autenticação bem-sucedida!</p><p>Selecione uma linha para rastrear.</p>`;
+                    rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700', 'bg-red-100', 'border-red-400', 'text-red-700');
                     rastreamentoStatus.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
                     return true;
                 } else {
@@ -347,6 +346,7 @@
                 }
             }
 
+            rastreamentoContent.innerHTML = `<p class="text-center text-gray-500 py-10"><span class="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"></span>Buscando posições dos ônibus...</p>`;
 
             const url = `${PROXY_BASE_URL}/posicao/${lineId}`;
             
@@ -389,7 +389,10 @@
                 return;
             }
 
-            const lineKey = data.cl.slice(0, 4) + '-' + data.cl.slice(4); 
+            // O código da linha da API da SPTrans (data.cl) é numérico, ex: 60310.
+            // Para encontrar no busData, precisamos formatá-lo, ex: 6L03-10.
+            const lineCodeNumeric = String(data.cl); 
+            const lineKey = lineCodeNumeric.slice(0, 4) + '-' + lineCodeNumeric.slice(4); 
             const lineInfo = busData[lineKey];
             const nomeLinha = lineInfo ? lineInfo.nome : 'Linha Desconhecida';
             
@@ -501,7 +504,8 @@
             linhaRastreamentoSelect.innerHTML = 
                 '<option value="">Selecione uma linha...</option>' + 
                 lines.map(key => 
-                `<option value="${key.replace('-', '')}">${key} - ${busData[key].nome}</option>` 
+                // Linha para API: 6L03-10 -> 60310
+                `<option value="${key.replace('L', '').replace('-', '')}">${key} - ${busData[key].nome}</option>` 
             ).join('');
         }
 
