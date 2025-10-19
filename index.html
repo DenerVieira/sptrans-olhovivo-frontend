@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horário de Ônibus</title>
+    <link rel="manifest" href="/manifest.json">
+    
+    <link rel="icon" href="/favicon.ico"> 
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+        .scroll-container {
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        /* Estilos de fonte para mobile */
+        @media (max-width: 640px) {
+            .text-3xl { font-size: 2rem; }
+            .text-2xl { font-size: 1.5rem; }
+            .text-3xl.font-extrabold { font-weight: 800; }
+        }
+        /* Estilos de Abas */
+        .tab-button {
+            padding: 10px 15px;
+            font-weight: 600;
+            color: #6b7280; /* gray-500 */
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            flex-shrink: 0; 
+        }
+        .tab-button.active {
+            color: #1e40af; /* blue-800 */
+            border-bottom-color: #1e40af;
+        }
+        .tab-button:hover:not(.active) {
+            color: #4b5563; /* gray-600 */
+        }
+        /* Estilo para o container de navegação */
+        .nav-container {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            border-bottom: 2px solid #e5e7eb; 
+            margin-bottom: 1.5rem; 
+        }
+        .nav-buttons {
+            display: flex;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8 min-h-screen">
+
+    <div class="max-w-4xl mx-auto">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-extrabold text-blue-800 tracking-tight">
+                HORÁRIO DE ÔNIBUS
+            </h1>
+            <p class="text-gray-500 mt-1">Consulte as partidas de ônibus da sua linha.</p>
+        </header>
+
+        <nav class="nav-container">
+            <div class="nav-buttons">
+                <button id="tab-horarios" class="tab-button active" onclick="switchTab('horarios')">
+                    Horários
+                </button>
+                <button id="tab-rastreamento" class="tab-button" onclick="switchTab('rastreamento')">
+                    Rastreamento
+                </button>
+            </div>
+        </nav>
+
+        <div id="content-horarios">
+            <div class="bg-white p-6 rounded-xl shadow-lg space-y-4 mb-8 border border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    
+                    <div>
+                        <label for="linha-select" class="block text-sm font-medium text-gray-700 mb-1">Linha</label>
+                        <select id="linha-select" onchange="updateSentidoOptions();" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm transition duration-150 ease-in-out">
+                            </select>
+                    </div>
+
+                    <div>
+                        <label for="sentido-select" class="block text-sm font-medium text-gray-700 mb-1">Sentido (Ida ou Volta)</label>
+                        <select id="sentido-select" onchange="displayHorarios();" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm transition duration-150 ease-in-out">
+                            </select>
+                    </div>
+
+                    <div>
+                        <label for="dia-select" class="block text-sm font-medium text-gray-700 mb-1">Dia da Semana</label>
+                        <select id="dia-select" onchange="displayHorarios();" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm transition duration-150 ease-in-out">
+                            <option value="Segunda a Sexta">SEGUNDA A SEXTA</option>
+                            <option value="SÁBADO">SÁBADO</option>
+                            <option value="DOMINGO">DOMINGO</option>
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+            <div id="horarios-container" class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                <div class="flex justify-between items-center mb-4 border-b pb-2 border-gray-200">
+                    <h2 class="text-2xl font-bold text-gray-800">Horários de Partida</h2>
+                </div>
+                
+                <div id="proxima-partida-card" class="mb-6 p-3 rounded-lg border-2 border-green-500 bg-green-50 text-center hidden">
+                    <p class="text-sm font-semibold text-green-700">Próxima Partida:</p>
+                    <p id="proxima-partida-time" class="text-3xl font-extrabold text-green-600 mt-1"></p>
+                    <p id="proxima-partida-status" class="text-xs text-green-700 mt-1"></p>
+                </div>
+                
+                <p id="operacao-status" class="text-sm text-gray-600 mb-4"></p>
+                <div id="horarios-grid" class="scroll-container grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
+                    </div>
+                
+                <p id="aviso-data-simulada" class="mt-6 text-xs text-orange-500 text-center hidden">
+                    * Aviso: Esta linha está usando horários simulados.
+                </p>
+
+                <p id="no-data" class="text-center text-gray-500 mt-4 hidden">Selecione uma linha, um sentido e um dia para ver os horários.</p>
+            </div>
+        </div>
+
+        <div id="content-rastreamento" class="hidden">
+             <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                <div class="mb-4">
+                    <label for="linha-rastreamento-select" class="block text-sm font-medium text-gray-700 mb-1">Linha para Rastreamento</label>
+                    <select id="linha-rastreamento-select" onchange="searchAndDisplayRastreamento();" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm transition duration-150 ease-in-out">
+                    </select>
+                </div>
+                
+                <h2 class="text-xl font-bold text-gray-800 mb-3 border-b pb-2">Ônibus em Tempo Real</h2>
+
+                <div id="rastreamento-status" class="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm mb-4">
+                    <p class="font-bold">AVISO: A API Olho Vivo (SPTrans) bloqueia requisições diretas (CORS).</p>
+                    <p class="mt-1">Estamos usando um **servidor proxy** para buscar os dados. Um erro indica que o proxy falhou ao se autenticar ou não está respondendo.</p>
+                </div>
+                
+                <div id="rastreamento-content" class="space-y-4">
+                    <p id="rastreamento-empty" class="text-center text-gray-500 py-10">Selecione uma linha para ver as posições dos ônibus (Se o proxy estiver ativo).</p>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <footer class="mt-10 text-center text-gray-400 text-xs">
+        Desenvolvido com dados reais da 6L01-10 (MARSILAC), 6L02-10 (JD EUCALIPTOS) e 6L03-10 (CIPÓ DO MEIO).
+    </footer>
+    
+    <script>
+        // *** CORREÇÃO CRÍTICA: URL BASE DO SEU PROXY NO RENDER ***
+        const PROXY_BASE_URL = 'https://sptrans-olhovivo-proxy.onrender.com';
+        let isAuthenticated = false; // Flag para rastrear o estado da autenticação
+
+        // --- DADOS DE HORÁRIOS (MANTIDOS) ---
+        const busData = {
+            "6L01-10": {
+                "nome": "MARSILAC",
+                "simulado": false, 
+                "horarios": {
+                    "TERMINAL VARGINHA": {
+                        "Segunda a Sexta": {
+                            "operacao": "04:00-00:30",
+                            "partidas": ["04:00", "04:20", "04:40", "05:00", "05:20", "05:40", "06:00", "06:20", "06:45", "07:10", "07:30", "07:55", "08:15", "08:35", "08:55", "09:15", "09:35", "09:55", "10:15", "10:35", "10:55", "11:15", "11:35", "11:55", "12:15", "12:35", "12:55", "13:15", "13:35", "13:55", "14:15", "14:35", "14:50", "15:10", "15:30", "15:50", "16:15", "16:35", "16:55", "17:15", "17:35", "17:55", "18:15", "18:35", "18:55", "19:20", "19:35", "19:55", "20:15", "20:35", "20:55", "21:15", "21:35", "21:55", "22:25", "22:55", "23:25", "23:55", "00:30"]
+                        },
+                        "SÁBADO": {
+                            "operacao": "04:00-00:30",
+                            "partidas": ["04:00", "04:25", "04:50", "05:10", "05:30", "05:50", "06:10", "06:30", "06:50", "07:10", "07:30", "07:50", "08:10", "08:40", "09:10", "09:30", "09:50", "10:10", "10:40", "11:10", "11:40", "12:10", "12:40", "13:10", "13:40", "14:10", "14:40", "15:10", "15:40", "16:10", "16:40", "17:10", "17:40", "18:10", "18:40", "19:10", "19:40", "20:10", "20:40", "21:15", "21:50", "22:20", "22:55", "23:35", "00:30"]
+                        },
+                        "DOMINGO": {
+                            "operacao": "04:30-00:30",
+                            "partidas": ["04:30", "05:00", "05:30", "06:00", "06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00", "22:30", "23:00", "23:45", "00:30"]
+                        }
+                    },
+                    "MARSILAC": {
+                        "Segunda a Sexta": {
+                            "operacao": "05:00-01:45",
+                            "partidas": ["05:00", "05:20", "05:40", "06:05", "06:25", "06:45", "07:10", "07:30", "07:55", "08:15", "08:35", "09:00", "09:20", "09:40", "10:00", "10:20", "10:40", "11:00", "11:20", "11:40", "12:00", "12:20", "12:40", "13:00", "13:20", "13:40", "14:00", "14:20", "14:40", "15:00", "15:20", "15:40", "16:00", "16:15", "16:30", "16:45", "17:00", "17:15", "17:35", "17:50", "18:05", "18:25", "18:45", "19:05", "19:25", "19:45", "20:05", "20:25", "20:45", "20:55", "21:10", "21:30", "21:50", "22:10", "22:30", "22:50", "23:20", "23:55", "00:50", "01:45"]
+                        },
+                        "SÁBADO": {
+                            "operacao": "05:00-01:45",
+                            "partidas": ["05:00", "05:35", "05:50", "06:05", "06:25", "06:45", "07:10", "07:30", "07:50", "08:10", "08:30", "08:50", "09:10", "09:40", "10:10", "10:25", "10:50", "11:10", "11:40", "12:15", "12:45", "13:15", "13:45", "14:15", "14:45", "15:15", "15:45", "16:15", "16:45", "17:15", "17:35", "17:55", "18:15", "18:35", "18:55", "19:15", "19:40", "20:05", "20:35", "21:00", "21:30", "22:05", "22:40", "23:15", "23:55", "00:50", "01:45"]
+                        },
+                        "DOMINGO": {
+                            "operacao": "05:30-01:40",
+                            "partidas": ["05:30", "06:00", "06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:05", "10:35", "11:05", "11:35", "12:05", "12:35", "13:05", "13:35", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:05", "17:35", "18:05", "18:35", "19:05", "19:35", "20:00", "20:30", "21:00", "21:30", "21:55", "22:25", "22:55", "23:25", "23:55", "00:45", "01:40"]
+                        }
+                    }
+                }
+            },
+            "6L02-10": {
+                "nome": "JD EUCALIPTOS",
+                "simulado": false, 
+                "horarios": {
+                    "TERMINAL PARELHEIROS": {
+                        "Segunda a Sexta": {
+                            "operacao": "05:00-23:00",
+                            "partidas": ["05:00", "05:50", "06:50", "07:50", "08:55", "10:05", "11:15", "12:15", "14:00", "15:25", "16:30", "17:35", "18:40", "19:50", "21:00", "22:05", "23:00"]
+                        },
+                        "SÁBADO": {
+                            "operacao": "05:30-22:00",
+                            "partidas": ["05:30", "07:00", "08:30", "10:00", "11:30", "13:00", "14:30", "16:00", "17:30", "19:00", "20:30", "22:00"]
+                        },
+                        "DOMINGO": {
+                            "operacao": "06:00-21:20",
+                            "partidas": ["06:00", "07:40", "09:20", "11:00", "12:40", "14:40", "16:20", "18:00", "19:40", "21:20"]
+                        }
+                    },
+                    "JD EUCALIPTOS": {
+                        "Segunda a Sexta": {
+                            "operacao": "05:50-23:45",
+                            "partidas": ["05:50", "06:40", "07:40", "08:40", "09:45", "10:55", "12:05", "13:05", "14:50", "16:15", "17:20", "18:25", "19:25", "20:35", "21:45", "22:50", "23:45"]
+                        },
+                        "SÁBADO": {
+                            "operacao": "06:15-22:45",
+                            "partidas": ["06:15", "07:45", "09:15", "10:40", "12:15", "13:45", "15:15", "16:45", "18:15", "19:45", "21:15", "22:45"]
+                        },
+                        "DOMINGO": {
+                            "operacao": "06:45-22:05",
+                            "partidas": ["06:45", "08:25", "10:05", "11:45", "13:25", "15:25", "17:05", "18:45", "20:25", "22:05"]
+                        }
+                    }
+                }
+            },
+            "6L03-10": {
+                "nome": "CIPÓ DO MEIO",
+                "simulado": false, 
+                "horarios": {
+                    // SENTIDO TERMINAL PARELHEIROS (Volta do Cipó do Meio)
+                    "TERMINAL PARELHEIROS": {
+                        "Segunda a Sexta": {
+                            "operacao": "04:35-00:20", 
+                            "partidas": ["04:50", "05:30", "06:10", "06:50", "07:30", "08:10", "08:50", "09:35", "10:20", "11:10", "12:00", "12:50", "13:40", "14:30", "15:20", "16:10", "16:55", "17:40", "18:20", "19:00", "19:45", "20:30", "21:20", "22:00", "22:40", "23:20", "00:20"]
+                        },
+                        "SÁBADO": {
+                            "operacao": "05:10-00:20", 
+                            "partidas": ["05:30", "06:30", "07:30", "08:30", "09:30", "10:30", "11:30", "12:30", "13:30", "14:30", "15:30", "16:30", "17:30", "18:30", "19:30", "20:30", "21:30", "22:30", "23:30", "00:20"]
+                        },
+                        "DOMINGO": {
+                            "operacao": "05:10-00:20", 
+                            "partidas": ["05:30", "06:30", "07:30", "08:30", "09:30", "10:30", "11:30", "12:30", "13:30", "14:30", "15:30", "16:30", "17:30", "18:30", "19:30", "20:30", "21:30", "22:30", "23:30", "00:20"]
+                        }
+                    },
+                    // SENTIDO CIPÓ DO MEIO (Ida do Terminal Parelheiros - BASEADO NO SITE OFICIAL DA SPTRANS)
+                    "CIPÓ DO MEIO": {
+                        "Segunda a Sexta": {
+                            "operacao": "03:50-23:30",
+                            "partidas": ["03:50", "04:30", "05:10", "05:50", "06:30", "07:10", "07:50", "08:30", "09:10", "09:55", "10:40", "11:30", "12:20", "13:10", "14:00", "14:50", "15:40", "16:30", "17:15", "18:00", "18:40", "19:20", "20:05", "20:50", "21:40", "22:20", "23:00", "23:30"]
+                        },
+                        "SÁBADO": {
+                            "operacao": "04:30-23:30",
+                            "partidas": ["04:30", "05:30", "06:30", "07:30", "08:30", "09:30", "10:30", "11:30", "12:30", "13:30", "14:30", "15:30", "16:30", "17:30", "18:30", "19:30", "20:30", "21:30", "22:30", "23:30"]
+                        },
+                        "DOMINGO": {
+                            "operacao": "04:30-23:30",
+                            "partidas": ["04:30", "05:30", "06:30", "07:30", "08:30", "09:30", "10:30", "11:30", "12:30", "13:30", "14:30", "15:30", "16:30", "17:30", "18:30", "19:30", "20:30", "21:30", "22:30", "23:30"]
+                        }
+                    }
+                }
+            }
+        };
+
+        // Referências DOM
+        const linhaSelect = document.getElementById('linha-select');
+        const sentidoSelect = document.getElementById('sentido-select');
+        const diaSelect = document.getElementById('dia-select');
+        const horariosGrid = document.getElementById('horarios-grid');
+        const operacaoStatus = document.getElementById('operacao-status');
+        const avisoDataSimulada = document.getElementById('aviso-data-simulada');
+        const noData = document.getElementById('no-data');
+        const proximaPartidaCard = document.getElementById('proxima-partida-card');
+        const proximaPartidaTime = document.getElementById('proxima-partida-time');
+        const proximaPartidaStatus = document.getElementById('proxima-partida-status');
+        
+        // Elementos de aba
+        const tabHorarios = document.getElementById('tab-horarios');
+        const tabRastreamento = document.getElementById('tab-rastreamento');
+        const contentHorarios = document.getElementById('content-horarios');
+        const contentRastreamento = document.getElementById('content-rastreamento');
+        
+        // Novos elementos de Rastreamento
+        const linhaRastreamentoSelect = document.getElementById('linha-rastreamento-select');
+        const rastreamentoContent = document.getElementById('rastreamento-content');
+        const rastreamentoEmpty = document.getElementById('rastreamento-empty');
+        const rastreamentoStatus = document.getElementById('rastreamento-status');
+
+
+        // --- FUNÇÕES DA API OLHO VIVO (SPTrans) - AGORA USANDO O PROXY CORRIGIDO ---
+
+        async function sptransLogin() {
+            if (isAuthenticated) return true; 
+
+            const url = `${PROXY_BASE_URL}/login`;
+            
+            rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS DO RASTREAMENTO:</p><p>Tentando conectar e autenticar no servidor proxy...</p>`;
+            rastreamentoStatus.classList.remove('bg-red-100', 'border-red-400', 'text-red-700', 'bg-orange-100', 'border-orange-400', 'text-orange-700', 'bg-green-100', 'border-green-400', 'text-green-700');
+            rastreamentoStatus.classList.add('bg-blue-100', 'border-blue-400', 'text-blue-700');
+
+
+            try {
+                // Requisição POST para o endpoint de login do proxy
+                const response = await fetch(url, { method: 'POST', credentials: 'include' }); 
+                // credentials: 'include' é crucial para enviar/receber o cookie de sessão
+
+                if (response.ok) {
+                    isAuthenticated = true;
+                    rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS: Autenticação bem-sucedida!</p><p>Selecione uma linha para rastrear.</p>`;
+                    rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700', 'bg-red-100', 'border-red-400', 'text-red-700');
+                    rastreamentoStatus.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
+                    return true;
+                } else {
+                    const errorData = await response.json();
+                    console.error("SPTrans Proxy: Falha na Autenticação (HTTP Status):", response.status, errorData);
+                    rastreamentoStatus.innerHTML = `<p class="font-bold">ERRO CRÍTICO NA AUTENTICAÇÃO!</p><p>Status: ${response.status}. Mensagem: ${errorData.message || 'Verifique o log do seu Web Service no Render.'}</p>`;
+                    rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700', 'bg-green-100', 'border-green-400', 'text-green-700');
+                    rastreamentoStatus.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+                    return false;
+                }
+            } catch (error) {
+                console.error("SPTrans Proxy: Falha Crítica na Requisição (Proxy Offline/CORS):", error);
+                rastreamentoStatus.innerHTML = `<p class="font-bold">ERRO DE CONEXÃO CRÍTICO!</p><p>Não foi possível conectar ao proxy em ${PROXY_BASE_URL}/login.</p><p>Verifique se o seu Web Service está **Live** no Render.</p>`;
+                rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700', 'bg-green-100', 'border-green-400', 'text-green-700');
+                rastreamentoStatus.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+                return false;
+            }
+        }
+        
+        async function getRastreamento(lineId) {
+            rastreamentoContent.innerHTML = '';
+            rastreamentoEmpty.classList.add('hidden');
+            
+            // Tenta logar/revalidar o login se não estiver autenticado
+            if (!isAuthenticated) {
+                const authenticated = await sptransLogin();
+                if (!authenticated) {
+                    rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Falha na Autenticação. Corrija o problema acima.</p>`;
+                    return;
+                }
+            }
+
+            rastreamentoContent.innerHTML = `<p class="text-center text-gray-500 py-10"><span class="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"></span>Buscando posições dos ônibus...</p>`;
+
+            const url = `${PROXY_BASE_URL}/posicao/${lineId}`;
+            
+            try {
+                // Requisição GET para o endpoint de posição do proxy
+                const response = await fetch(url, { credentials: 'include' });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayRastreamento(data);
+                } else if (response.status === 401) {
+                    // 401: Não autorizado (o cookie expirou) -> Força um novo login
+                    isAuthenticated = false; 
+                    rastreamentoContent.innerHTML = `<p class="text-center text-orange-500 mt-4 font-bold">Sessão expirada. Tentando novo login...</p>`;
+                    await sptransLogin();
+                    // Tenta a requisição de novo
+                    await getRastreamento(lineId); 
+
+                } else {
+                    const errorData = await response.json();
+                    rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4">Erro ao buscar dados: ${response.status}. Detalhes: ${errorData.message || 'Verifique o log do proxy.'}</p>`;
+                }
+            } catch (error) {
+                rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Não foi possível buscar as posições. (Erro de rede ou proxy)</p>`;
+                console.error("Erro ao buscar a posição:", error);
+            }
+        }
+        
+        function displayRastreamento(data) {
+            rastreamentoContent.innerHTML = '';
+
+            // Verifica se a API da SPTrans retornou dados válidos
+            if (!data.vs || data.vs.length === 0) {
+                // Se a requisição foi bem-sucedida, mas não há ônibus em circulação
+                 rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS: Sucesso na conexão.</p><p>Nenhum ônibus em circulação no momento ou fora do horário de operação.</p>`;
+                 rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700', 'bg-red-100', 'border-red-400', 'text-red-700');
+                 rastreamentoStatus.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
+
+                rastreamentoContent.innerHTML = `<p class="text-center text-gray-500 py-10">Nenhum ônibus encontrado em circulação para esta linha no momento (Atualizado em: ${data.hr || 'N/A'}).</p>`;
+                return;
+            }
+
+            // O código da linha da API da SPTrans (data.cl) é numérico, ex: 60310.
+            // Para encontrar no busData, precisamos formatá-lo, ex: 6L03-10.
+            const lineCodeNumeric = String(data.cl); 
+            const lineKey = lineCodeNumeric.slice(0, 4) + '-' + lineCodeNumeric.slice(4); 
+            const lineInfo = busData[lineKey];
+            const nomeLinha = lineInfo ? lineInfo.nome : 'Linha Desconhecida';
+            
+            rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS: Sucesso na conexão.</p><p>Posições em tempo real encontradas.</p>`;
+            rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700', 'bg-red-100', 'border-red-400', 'text-red-700');
+            rastreamentoStatus.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
+
+            rastreamentoContent.innerHTML += `<p class="text-sm text-gray-600 mb-4">Linha **${lineKey} - ${nomeLinha}**: ${data.vs.length} veículos em circulação (Atualizado em: ${data.hr})</p>`;
+
+            data.vs.forEach(v => {
+                const sentido = v.ta === 1 ? 'Terminal Principal' : 'Terminal Secundário';
+                const lat = v.py.toFixed(4);
+                const lon = v.px.toFixed(4);
+                
+                rastreamentoContent.innerHTML += `
+                    <div class="p-3 border rounded-lg bg-gray-50 flex justify-between items-center shadow-sm">
+                        <div>
+                            <p class="font-bold text-lg text-blue-700">Ônibus ${v.p}</p>
+                            <p class="text-xs text-gray-600">Prefixo: ${v.prefixo}</p>
+                            <p class="text-xs text-gray-600">Localização (Lat/Lon): ${lat} / ${lon}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">${sentido}</span>
+                            <p class="text-xs text-gray-500 mt-1">Última atualização: ${v.t}</p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        function searchAndDisplayRastreamento() {
+             const selectedLineId = linhaRastreamentoSelect.value;
+             if (selectedLineId) {
+                 getRastreamento(selectedLineId);
+             } else {
+                 rastreamentoContent.innerHTML = '';
+                 rastreamentoEmpty.classList.remove('hidden');
+             }
+        }
+        
+        // --- Funções de Utilitários (MANTIDAS) ---
+        
+        function getDiaSemanaAtual() {
+            const today = new Date();
+            const dayOfWeek = today.getDay(); 
+            if (dayOfWeek >= 1 && dayOfWeek <= 5) return "Segunda a Sexta";
+            if (dayOfWeek === 6) return "SÁBADO";
+            if (dayOfWeek === 0) return "DOMINGO";
+            return "Segunda a Sexta";
+        }
+
+        function getMinutesFromTime(time) {
+            const [h, m] = time.split(':').map(Number);
+            return h * 60 + m;
+        }
+        
+        function getNextPartida(partidas, dia) {
+            const now = new Date();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            let nextPartida = null;
+            let minutesUntilNext = Infinity;
+            
+            for (const time of partidas) {
+                const partidaMinutes = getMinutesFromTime(time);
+                
+                let adjustedPartidaMinutes = partidaMinutes;
+                // Ajuste para horários que passam da meia-noite (ex: 00:30)
+                if (partidaMinutes < 5 * 60 && currentMinutes > 18 * 60) {
+                    adjustedPartidaMinutes += 24 * 60;
+                }
+
+                if (adjustedPartidaMinutes > currentMinutes) {
+                    const diff = adjustedPartidaMinutes - currentMinutes;
+                    if (diff < minutesUntilNext) {
+                        minutesUntilNext = diff;
+                        nextPartida = time;
+                    }
+                }
+            }
+
+            if (nextPartida) {
+                const hours = Math.floor(minutesUntilNext / 60);
+                const minutes = minutesUntilNext % 60;
+                const status = (minutesUntilNext === Infinity) 
+                    ? "Operação encerrada. Próxima partida do dia."
+                    : `Partida mais próxima: em ${hours}h ${minutes}m.`;
+
+                return { time: nextPartida, minutesUntilNext, status };
+            }
+
+            if (partidas.length > 0) {
+                return { time: partidas[0], minutesUntilNext: null, status: "Operação encerrada. Próxima partida do dia." };
+            }
+
+            return null;
+        }
+
+        // --- Funções da UI Principal (MANTIDAS) ---
+
+        function populateLinhas() {
+            const lines = Object.keys(busData);
+            
+            // Popula o seletor da aba Horários
+            linhaSelect.innerHTML = lines.map(key => 
+                `<option value="${key}">${key} - ${busData[key].nome}</option>`
+            ).join('');
+
+            // Popula o seletor da aba Rastreamento (Linha sem hífen para a API)
+            linhaRastreamentoSelect.innerHTML = 
+                '<option value="">Selecione uma linha...</option>' + 
+                lines.map(key => 
+                // Linha para API: 6L03-10 -> 60310
+                `<option value="${key.replace('L', '').replace('-', '')}">${key} - ${busData[key].nome}</option>` 
+            ).join('');
+        }
+
+        function updateSentidoOptions() {
+            const selectedLineKey = linhaSelect.value;
+            if (!selectedLineKey) return;
+
+            const sentidos = Object.keys(busData[selectedLineKey].horarios);
+            sentidoSelect.innerHTML = sentidos.map(sentido => 
+                `<option value="${sentido}">${sentido}</option>`
+            ).join('');
+            
+            displayHorarios(); 
+        }
+
+        function displayHorarios() {
+            if (contentHorarios.classList.contains('hidden')) return;
+
+            const selectedLineKey = linhaSelect.value;
+            const selectedSentido = sentidoSelect.value;
+            const selectedDia = diaSelect.value;
+            
+            horariosGrid.innerHTML = '';
+            proximaPartidaCard.classList.add('hidden');
+            operacaoStatus.textContent = '';
+            avisoDataSimulada.classList.add('hidden');
+            noData.classList.add('hidden');
+
+            if (!selectedLineKey || !selectedSentido || !selectedDia) {
+                noData.classList.remove('hidden');
+                return;
+            }
+
+            const lineData = busData[selectedLineKey];
+            const sentidoData = lineData.horarios[selectedSentido];
+
+            if (lineData.simulado) {
+                avisoDataSimulada.classList.remove('hidden');
+            } else {
+                avisoDataSimulada.classList.add('hidden');
+            }
+
+            if (!sentidoData || !sentidoData[selectedDia]) {
+                horariosGrid.innerHTML = `<p class="col-span-full text-center text-red-500">Horários não encontrados para o dia selecionado.</p>`;
+                return;
+            }
+
+            const { operacao, partidas } = sentidoData[selectedDia];
+            operacaoStatus.textContent = `Horário de Operação: ${operacao}`;
+
+            const nextPartida = getNextPartida(partidas, selectedDia);
+            
+            if (nextPartida && nextPartida.time) {
+                proximaPartidaCard.classList.remove('hidden');
+                proximaPartidaTime.textContent = nextPartida.time;
+                proximaPartidaStatus.textContent = nextPartida.status;
+            } else {
+                proximaPartidaCard.classList.add('hidden');
+            }
+
+            horariosGrid.innerHTML = partidas.map(time => {
+                const isNext = nextPartida && nextPartida.time === time;
+                
+                let timeClasses = "p-2 rounded-lg text-center text-sm font-bold border-2 transition duration-150 ease-in-out";
+                
+                if (isNext) {
+                    timeClasses += " bg-green-200 border-green-500 text-green-800 shadow-md transform scale-105";
+                } else {
+                    timeClasses += " bg-gray-100 border-gray-200 hover:bg-gray-200 text-gray-800";
+                }
+
+                return `<div class="${timeClasses}">${time}</div>`;
+            }).join('');
+        }
+
+        // Função para alternar entre as abas
+        function switchTab(tabName) {
+            contentHorarios.classList.add('hidden');
+            contentRastreamento.classList.add('hidden');
+            tabHorarios.classList.remove('active');
+            tabRastreamento.classList.remove('active');
+
+            if (tabName === 'horarios') {
+                contentHorarios.classList.remove('hidden');
+                tabHorarios.classList.add('active');
+                displayHorarios(); 
+            } else if (tabName === 'rastreamento') {
+                contentRastreamento.classList.remove('hidden');
+                tabRastreamento.classList.add('active');
+                // Força o login sempre que a aba é aberta para revalidar o status
+                isAuthenticated = false; 
+                searchAndDisplayRastreamento();
+            }
+        }
+
+        function init() {
+            populateLinhas();
+            diaSelect.value = getDiaSemanaAtual(); 
+            linhaSelect.value = "6L03-10"; // Seleciona a linha 6L03-10 para visualização inicial
+            updateSentidoOptions();
+            
+            switchTab('horarios');
+
+            // Atualiza a cada 30 segundos
+            setInterval(() => {
+                if (!contentHorarios.classList.contains('hidden')) {
+                    displayHorarios();
+                }
+                // Atualiza o rastreamento a cada 30 segundos, se a aba estiver ativa
+                if (!contentRastreamento.classList.contains('hidden')) {
+                     const selectedLineId = linhaRastreamentoSelect.value;
+                     if (selectedLineId && isAuthenticated) {
+                         getRastreamento(selectedLineId);
+                     } else if (selectedLineId) {
+                         // Se não estiver autenticado, tenta logar novamente
+                         sptransLogin();
+                     }
+                }
+            }, 30000); 
+
+            // CÓDIGO DE REGISTRO USANDO WORKBOX (Mantido o mesmo)
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/workbox-sw.js', { scope: '/' })
+                        .then(reg => {
+                            console.log('Workbox Service Worker registrado com sucesso!');
+                        })
+                        .catch(err => {
+                            alert('ERRO PWA CRÍTICO: Falha no registro do Workbox! Verifique a URL do arquivo: ' + err.message);
+                            console.error('ERRO CRÍTICO no registro do Workbox:', err);
+                        });
+                });
+            } else {
+                console.warn('AVISO: Este navegador não suporta Service Workers (PWA).');
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
