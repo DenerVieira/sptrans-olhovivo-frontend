@@ -156,9 +156,7 @@
     </footer>
     
     <script>
-        // CORREÇÃO CRÍTICA: Removendo o API_TOKEN e API_URL do frontend por segurança.
-        // O frontend agora só conhece a URL do seu PRÓPRIO servidor proxy.
-        // **ATENÇÃO:** Mude esta URL se o seu serviço Render tiver outro endereço.
+        // ATENÇÃO: Mude esta URL se o seu serviço Render tiver outro endereço.
         const PROXY_BASE_URL = 'https://sptrans-olhovivo-proxy.onrender.com/api'; 
         
         // --- DADOS DE HORÁRIOS (6L03-10 ATUALIZADOS) ---
@@ -296,25 +294,23 @@
 
         // --- FUNÇÕES DA API OLHO VIVO (SPTrans) ---
 
-        // A autenticação e a sessão agora são responsabilidade TOTAL do servidor proxy (proxy.js).
-        
         async function getRastreamento(lineId) {
             rastreamentoContent.innerHTML = '';
             rastreamentoEmpty.classList.add('hidden');
             
-            // Chama o endpoint do PROXY. O proxy deve lidar com o login.
+            // Chama o endpoint do PROXY.
             const url = `${PROXY_BASE_URL}/posicao?codigoLinha=${lineId}`; 
             
             // Atualiza o status
             rastreamentoStatus.classList.remove('bg-red-100', 'border-red-400', 'text-red-700', 'bg-orange-100', 'border-orange-400', 'text-orange-700', 'bg-green-100', 'border-green-400', 'text-green-700');
             rastreamentoStatus.classList.add('bg-blue-100', 'border-blue-400', 'text-blue-700');
-            rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS DO RASTREAMENTO:</p><p>Conectando ao proxy (${PROXY_BASE_URL}) para buscar a posição da linha ${lineId}...</p>`;
+            rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS DO RASTREAMENTO:</p><p>Conectando ao proxy para buscar a posição da linha ${lineId}...</p>`;
 
 
             try {
                 const response = await fetch(url);
                 
-                // CORREÇÃO: Trata a falha do proxy (erros 4xx, 5xx) e exibe a mensagem detalhada.
+                // CORREÇÃO: Trata a falha do proxy e exibe a mensagem detalhada.
                 if (!response.ok) { 
                      const errorData = await response.json();
                      rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
@@ -558,7 +554,7 @@
         function init() {
             populateLinhas();
             diaSelect.value = getDiaSemanaAtual(); 
-            linhaSelect.value = "6L01-10"; // Seleciona a linha 6L01-10 para visualização inicial
+            linhaSelect.value = "6L03-10"; // Seleciona a linha 6L03-10 para visualização inicial
             updateSentidoOptions();
             
             switchTab('horarios');
