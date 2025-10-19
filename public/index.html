@@ -329,6 +329,7 @@
                 }
             } catch (error) {
                 console.error("Erro Crítico ao conectar ao Proxy:", error);
+                // ESTE ERRO SÓ APARECE SE A REDE FALHAR OU SE O PROXY ESTIVER OFFLINE/COM ERRO 502
                 rastreamentoStatus.innerHTML = '<p class="font-bold text-red-700">Erro de Conexão Crítico.</p><p class="text-xs">Verifique se o servidor proxy (`proxy.js`) está rodando em `' + PROXY_BASE_URL + '`.</p>';
                 rastreamentoStatus.className = 'p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm mb-4';
                 return false;
