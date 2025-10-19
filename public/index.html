@@ -320,7 +320,7 @@
                      rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
                      rastreamentoStatus.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
                      
-                     // Exibe a mensagem de erro detalhada do proxy (que inclui o 404 da SPTrans)
+                     // Exibe a mensagem de erro detalhada do proxy (que inclui o código de erro da SPTrans)
                      rastreamentoStatus.innerHTML = `<p class="font-bold">Erro do Servidor Proxy (Status HTTP: ${response.status}):</p><p class="text-sm">${errorData.Error}</p>`;
                      rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Falha na Comunicação com a SPTrans (Via Proxy).</p>`;
                      return;
@@ -558,7 +558,7 @@
         function init() {
             populateLinhas();
             diaSelect.value = getDiaSemanaAtual(); 
-            linhaSelect.value = "6L03-10"; // Seleciona a linha 6L03-10 para visualização inicial
+            linhaSelect.value = "6L01-10"; // Seleciona a linha 6L01-10 para visualização inicial
             updateSentidoOptions();
             
             switchTab('horarios');
