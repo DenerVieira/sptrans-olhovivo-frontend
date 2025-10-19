@@ -139,8 +139,8 @@
                 <h2 class="text-xl font-bold text-gray-800 mb-3 border-b pb-2">Ônibus em Tempo Real</h2>
 
                 <div id="rastreamento-status" class="p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded-lg text-sm mb-4">
-                    <p class="font-bold">STATUS DO RASTREAMENTO:</p>
-                    <p>Tentando conectar ao Servidor Proxy para buscar dados. O token de acesso está seguro no servidor proxy.</p>
+                    <p class="font-bold">STATUS DO RASTREAMENTO (VIA PROXY):</p>
+                    <p>Tentando conectar ao Servidor Proxy para buscar dados. **Se o erro 404 persistir, a URL da API ou o TOKEN no Render está incorreto.**</p>
                 </div>
                 
                 <div id="rastreamento-content" class="space-y-4">
@@ -170,7 +170,7 @@
                     "TERMINAL VARGINHA": {
                         "Segunda a Sexta": {
                             "operacao": "04:00-00:30",
-                            "partidas": ["04:00", "04:20", "04:40", "05:00", "05:20", "05:40", "06:00", "06:20", "06:45", "07:10", "07:30", "07:55", "08:15", "08:35", "08:55", "09:15", "09:35", "09:55", "10:15", "10:35", "10:55", "11:15", "11:35", "11:55", "12:15", "12:35", "12:55", "13:15", "13:35", "13:55", "14:15", "14:35", "14:50", "15:10", "15:30", "15:50", "16:15", "16:35", "16:55", "17:15", "17:35", "17:55", "18:15", "18:35", "18:55", "19:20", "19:35", "19:55", "20:15", "20:35", "20:55", "21:15", "21:35", "21:55", "22:25", "22:55", "23:25", "23:55", "00:30"]
+                            "partidas": ["04:00", "04:20", "04:40", "05:00", "05:20", "05:40", "06:00", "06:20", "06:45", "07:10", "07:30", "07:55", "08:15", "08:35", "08:55", "09:15", "09:35", "09:55", "10:15", "10:35", "10:55", "11:15", "11:35", "11:55", "12:15", "12:35", "12:55", "13:15", "13:35", "13:55", "14:15", "14:35", "14:50", "15:10", "15:30", "15:50", "16:15", "16:30", "16:45", "17:00", "17:15", "17:35", "17:50", "18:05", "18:25", "18:45", "19:05", "19:25", "19:45", "20:05", "20:25", "20:45", "20:55", "21:10", "21:30", "21:50", "22:10", "22:30", "22:50", "23:20", "23:55", "00:50", "01:45"]
                         },
                         "SÁBADO": {
                             "operacao": "04:00-00:30",
@@ -302,13 +302,13 @@
             rastreamentoContent.innerHTML = '';
             rastreamentoEmpty.classList.add('hidden');
             
-            // CORREÇÃO CRÍTICA: Chama o endpoint do PROXY. O proxy deve lidar com o login.
+            // Chama o endpoint do PROXY. O proxy deve lidar com o login.
             const url = `${PROXY_BASE_URL}/posicao?codigoLinha=${lineId}`; 
             
             // Atualiza o status
             rastreamentoStatus.classList.remove('bg-red-100', 'border-red-400', 'text-red-700', 'bg-orange-100', 'border-orange-400', 'text-orange-700', 'bg-green-100', 'border-green-400', 'text-green-700');
             rastreamentoStatus.classList.add('bg-blue-100', 'border-blue-400', 'text-blue-700');
-            rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS DO RASTREAMENTO:</p><p>Conectando ao proxy para buscar a posição da linha ${lineId}...</p>`;
+            rastreamentoStatus.innerHTML = `<p class="font-bold">STATUS DO RASTREAMENTO:</p><p>Conectando ao proxy (${PROXY_BASE_URL}) para buscar a posição da linha ${lineId}...</p>`;
 
 
             try {
@@ -323,28 +323,29 @@
                         rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
                         rastreamentoStatus.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
                         // Exibe a mensagem de erro do proxy (que deve incluir o status 404 da SPTrans)
-                        rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Erro de Autenticação na SPTrans (Via Proxy):</p><p class="text-center text-red-500">${data.Error}</p><p class="text-center text-red-500">O NOVO TOKEN PODE ESTAR INVÁLIDO OU NÃO FOI APLICADO CORRETAMENTE NO RENDER.</p>`;
+                        rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Erro de Autenticação na SPTrans (Via Proxy):</p><p class="text-center text-red-500">${data.Error}</p><p class="text-center text-red-500">O **TOKEN** ou a **URL da API** podem estar incorretos. Verifique a variável SPTRANS_API_TOKEN e SPTRANS_API_URL no Render.</p>`;
                         return;
                     }
 
                     // Sucesso
                     rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
                     rastreamentoStatus.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
-                    rastreamentoStatus.innerHTML = `<p class="font-bold">SUCESSO:</p><p>Dados recebidos do proxy. Posições exibidas abaixo.</p>`;
+                    rastreamentoStatus.innerHTML = `<p class="font-bold">SUCESSO:</p><p>Dados recebidos do proxy. ${data.vs ? data.vs.length : 0} veículos em tempo real.</p>`;
 
                     displayRastreamento(data);
                 } else {
-                    // O proxy retornou um erro HTTP (e.g., 500, 404 do próprio proxy)
+                    // O proxy retornou um erro HTTP (e.g., 500, 403, 404 do próprio proxy)
+                    const errorText = await response.text();
                     rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
                     rastreamentoStatus.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
-                    rastreamentoStatus.innerHTML = `<p class="font-bold">Erro Crítico do Proxy:</p><p>O servidor proxy retornou o status: ${response.status}. Verifique se o serviço Render está ativo (502 Bad Gateway) ou se há erro de lógica (500 Internal Server Error).</p>`;
-                    rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Falha na Comunicação com o Proxy.</p>`;
+                    rastreamentoStatus.innerHTML = `<p class="font-bold">Erro Crítico do Proxy:</p><p>O servidor proxy retornou o status: ${response.status}. Verifique se o serviço Render está ativo ou se o erro de autenticação persiste (código 403).</p>`;
+                    rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Falha na Comunicação com o Proxy.</p><p class="text-center text-red-500 text-xs">Detalhes (do proxy): ${errorText.substring(0, 100)}...</p>`;
                 }
             } catch (error) {
                 // Erro de rede (Proxy inativo/offline)
                 rastreamentoStatus.classList.remove('bg-blue-100', 'border-blue-400', 'text-blue-700');
                 rastreamentoStatus.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
-                rastreamentoStatus.innerHTML = `<p class="font-bold">Erro de Conexão Crítico:</p><p>Não foi possível conectar-se ao proxy. Verifique se o serviço Render está rodando e se a URL do proxy está correta.</p>`;
+                rastreamentoStatus.innerHTML = `<p class="font-bold">Erro de Conexão Crítico:</p><p>Não foi possível conectar-se ao proxy. Verifique se o serviço Render está rodando e se a URL do proxy está correta: **${PROXY_BASE_URL}**</p>`;
                 rastreamentoContent.innerHTML = `<p class="text-center text-red-500 mt-4 font-bold">Proxy Inativo/Offline.</p>`;
                 console.error("Erro ao conectar-se ao servidor proxy:", error);
             }
