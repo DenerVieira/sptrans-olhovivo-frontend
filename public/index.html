@@ -140,7 +140,7 @@
 
                 <div id="rastreamento-status" class="p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded-lg text-sm mb-4">
                     <p class="font-bold">STATUS DO RASTREAMENTO:</p>
-                    <p>O rastreamento usa um Servidor Proxy (`sptrans-olhovivo-proxy.onrender.com`) para superar o bloqueio de CORS da SPTrans e esconder o token de acesso. A conexão só funcionará se o Proxy estiver ativo.</p>
+                    <p>O rastreamento usa o Servidor Proxy em **https://sptrans-olhovivo-proxy.onrender.com/** para superar o bloqueio de CORS da SPTrans e esconder o token de acesso. A conexão só funcionará se o Proxy estiver ativo.</p>
                 </div>
                 
                 <div id="rastreamento-content" class="space-y-4">
@@ -157,11 +157,11 @@
     
     <script>
         // CONFIGURAÇÃO DO PROXY E URLS
-        // O PROXY é necessário para contornar o CORS e esconder o token da SPTrans.
-        const PROXY_BASE_URL = 'https://sptrans-olhovivo-proxy.onrender.com/api/proxy';
+        // Use a URL base do seu Render Web Service
+        const PROXY_BASE_URL = 'https://sptrans-olhovivo-proxy.onrender.com'; 
         let authToken = null; // Variável para rastrear se a autenticação do proxy foi bem-sucedida
 
-        // --- DADOS DE HORÁRIOS (6L03-10 ATUALIZADOS) ---
+        // --- DADOS DE HORÁRIOS (MANTIDOS IGUAIS) ---
         const busData = {
             "6L01-10": {
                 "nome": "MARSILAC",
@@ -303,7 +303,7 @@
             // Se já tivermos um token de sessão, assumimos que o cookie foi definido.
             if (authToken) return true; 
 
-            const url = `${PROXY_BASE_URL}/login`; // Rota de login do nosso proxy
+            const url = `${PROXY_BASE_URL}/login`; // Rota de login simples
             try {
                 // ESSENCIAL: Permite que o Front-end envie e receba cookies do Proxy (Cross-site).
                 const response = await fetch(url, { 
@@ -355,7 +355,7 @@
             }
 
             // 2. Faz a requisição de posição através do proxy
-            const url = `${PROXY_BASE_URL}/posicao?codigoLinha=${lineId}`;
+            const url = `${PROXY_BASE_URL}/posicao?codigoLinha=${lineId}`; // Rota de posição simples
             
             try {
                 const response = await fetch(url, {
@@ -444,13 +444,13 @@
                  rastreamentoEmpty.classList.remove('hidden');
                  
                  // Volta o status para a mensagem inicial
-                 rastreamentoStatus.innerHTML = '<p class="font-bold">STATUS DO RASTREAMENTO:</p><p>O rastreamento usa um Servidor Proxy (`sptrans-olhovivo-proxy.onrender.com`) para superar o bloqueio de CORS da SPTrans e esconder o token de acesso. A conexão só funcionará se o Proxy estiver ativo.</p>';
+                 rastreamentoStatus.innerHTML = '<p class="font-bold">STATUS DO RASTREAMENTO:</p><p>O rastreamento usa o Servidor Proxy em **https://sptrans-olhovivo-proxy.onrender.com/** para superar o bloqueio de CORS da SPTrans e esconder o token de acesso. A conexão só funcionará se o Proxy estiver ativo.</p>';
                  rastreamentoStatus.classList.remove('bg-red-100', 'border-red-400', 'text-red-700', 'bg-green-100', 'border-green-400', 'text-green-700');
                  rastreamentoStatus.classList.add('bg-blue-100', 'border-blue-400', 'text-blue-700');
              }
         }
         
-        // --- Funções de Utilitários ---
+        // --- Funções de Utilitários (MANTIDAS IGUAIS) ---
         
         function getDiaSemanaAtual() {
             const today = new Date();
@@ -507,7 +507,7 @@
             return null;
         }
 
-        // --- Funções da UI Principal ---
+        // --- Funções da UI Principal (MANTIDAS IGUAIS) ---
 
         function populateLinhas() {
             const lines = Object.keys(busData);
